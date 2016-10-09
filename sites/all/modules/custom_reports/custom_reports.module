@@ -1,0 +1,138 @@
+<?php
+/*
+ * Function to store pilot data in a separate table so that it is easier to view the report.
+ */
+
+function custom_reports_data_turs(){
+  // echo '<pre>';
+  // print_r($_GET);EXIT;
+  // $date_range;
+  $query_ids = "SELECT
+  n.nid as nid,
+  n.uid as authorid,
+  l.field_testlokation_target_id as locationid,
+  k.field_kommunetesttax_tid as kommuneid,
+  p.field_tur_beboer_target_id as passengerid,
+  d.field_tur_dato_value as start,
+  d.field_tur_dato_value2 as end,
+  f.field_tur_frivillig_uid as pilotid
+  FROM
+  node n
+  JOIN
+  field_data_field_testlokation l
+  ON n.nid = l.entity_id
+  JOIN
+  field_data_field_kommunetesttax k
+  ON n.nid = k.entity_id
+  LEFT JOIN
+  field_data_field_tur_beboer p
+  ON n.nid = p.entity_id
+  JOIN
+  field_data_field_tur_dato d
+  ON n.nid = d.entity_id
+  LEFT JOIN
+  field_data_field_tur_frivillig f
+  ON n.nid = f.entity_id
+  WHERE n.type = 'tur'
+  ";
+
+  $result_ids = db_query($query_ids);
+  foreach ($result_ids as $tur){
+    $nodes[$tur->locationid] = $tur->locationid;
+    $users[$tur->authorid] = $tur->authorid;
+    $taxos[$tur->kommuneid] = $tur->kommuneid;
+    if(isset($tur->passengerid)){  $nodes[$tur->passengerid] = $tur->passengerid; }
+    if(isset($tur->pilotid)){  $users[$tur->pilotid] = $tur->pilotid; }
+    $turs[] = $tur;
+  }
+
+  $node_names = custom_reports_load_nodeinfo($nodes);
+  foreach($node_names as $nid=>$name){
+    $names[$nid] = $name->title;
+  }
+
+  $user_names = custom_reports_load_userinfo($users);
+  foreach($user_names as $uid=>$name){
+    $f_names[$uid] = $name->first;
+    $l_names[$uid] = $name->last;
+    $emails[$uid] = $name->mail;
+  }
+
+  $taxo_names = custom_reports_load_taxoinfo($taxos);
+  foreach($taxo_names as $tid=>$name){
+    $term[$tid] = $name->name;
+  }
+
+  foreach($turs as $tur){
+    $result_set[$tur->nid]['location'] = $names[$tur->locationid];
+    $result_set[$tur->nid]['kommune'] = $term[$tur->kommuneid];
+    $result_set[$tur->nid]['startdate'] = date("m/d/Y", $tur->start);
+    $result_set[$tur->nid]['starttime'] = date("h:i a", $tur->start);
+    $result_set[$tur->nid]['enddate'] = date("m/d/Y",$tur->end);
+    $result_set[$tur->nid]['endtime'] = date("h:i a", $tur->end);
+    $result_set[$tur->nid]['authorname'] = $f_names[$tur->authorid].' '.$l_names[$tur->authorid];
+    $result_set[$tur->nid]['authoremail'] = $emails[$tur->authorid];
+    if(isset($tur->pilotid)){
+      $result_set[$tur->nid]['pilotname'] = $f_names[$tur->pilotid].' '.$l_names[$tur->pilotid];
+      $result_set[$tur->nid]['pilotemail'] = $emails[$tur->pilotid];
+    }
+  }
+
+/*echo '<pre>asdas';
+print_r($result_set);
+echo '</pre>';
+exit;*/
+
+variable_set('tur_info_all', $result_set);
+return '';
+}
+
+function custom_reports_load_nodeinfo($params = array()){
+  $ids = implode(',',$params);
+  $names = db_query("SELECT title,nid from node where nid in ($ids)")->fetchAllAssoc('nid');
+  return $names;
+}
+
+function custom_reports_load_taxoinfo($params = array()){
+  $ids = implode(',',$params);
+  $names = db_query("SELECT name,tid from taxonomy_term_data where tid in ($ids)")->fetchAllAssoc('tid');
+  return $names;
+}
+
+function custom_reports_load_userinfo($params = array()){
+  $ids = implode(',',$params);
+  $query = "SELECT u.uid,u.mail, f.field_fornavn_value as first, l.field_efternavn_value as last
+  FROM users u
+  LEFT JOIN field_data_field_fornavn f
+  ON u.uid = f.entity_id
+  LEFT JOIN field_data_field_efternavn l
+  ON u.uid = l.entity_id
+  where u.uid in ($ids)
+  ";
+  // echo $query;exit;
+  $names = db_query($query)->fetchAllAssoc('uid');
+  return $names;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function custom_reports_menu() {
+  /*
+   *$items['blog'] = array(
+   *  'title' => 'blogs',
+   *  'page callback' => 'blog_page',
+   *  'access arguments' => array('access content'),
+   *  'type' => MENU_SUGGESTED_ITEM,
+   *);
+   */
+  $items['admin/reportspage'] = array(
+    'title' => 'reports',
+    'page callback' => 'custom_reports_data_turs',
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => TRUE,
+  );
+
+  return $items;
+}
+?>

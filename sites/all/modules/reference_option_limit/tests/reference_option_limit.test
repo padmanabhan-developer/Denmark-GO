@@ -1,0 +1,113 @@
+<?php
+
+/**
+ * @file
+ * Contains tests for the Reference option limit module.
+ */
+
+/**
+ * Test use of the module with term reference fields.
+ */
+class ReferenceOptionLimitTaxonomyTestCase extends DrupalWebTestCase {
+
+  /**
+   * Implements getInfo().
+   */
+  public static function getInfo() {
+    return array(
+      'name' => t('Reference Option Limit taxonomy term'),
+      'description' => t('Tests behaviour with taxonomy term reference fields.'),
+      'group' => t('Reference Option Limit'),
+    );
+  }
+
+  /**
+   * Implements setUp().
+   */
+  function setUp() {
+    parent::setUp(array('reference_option_limit', 'reference_option_limit_test_taxonomy'));
+
+    // Create our creator user.
+    $this->user = $this->drupalCreateUser(array(
+      'administer nodes',
+      'create test_rol_node_taxo content',
+      'edit any test_rol_node_taxo content',
+    ));
+    $this->drupalLogin($this->user);
+  }
+
+  /**
+   * Test the module's functionality.
+   */
+  function testNodeCreateForm() {
+    $this->drupalGet('node/add/test-rol-node-taxo');
+
+    // Get a country term.
+    $terms = taxonomy_get_term_by_name('France', 'countries');
+    $country_term = array_pop($terms);
+
+    $edit = array(
+      'test_rol_country[und]' => $country_term->tid,
+    );
+
+    $this->drupalPostAJAX(NULL, $edit, 'test_rol_country[und]');
+
+    // The AJAX post updates the content our assertions test against.
+    // Check each term: all the cities in France should be present; all the
+    // others should not.
+    foreach (reference_option_limit_test_taxonomy_cities() as $city_name => $country_name) {
+      if ($country_name == 'France') {
+        $this->assertText($city_name, "The $city_name term was found in the form.");
+      }
+      else {
+        $this->assertNoText($city_name, "The $city_name term was not found in the form.");
+      }
+    }
+
+    // Get a country term.
+    $terms = taxonomy_get_term_by_name('Italy', 'countries');
+    $country_term = array_pop($terms);
+
+    $edit = array(
+      'test_rol_country[und]' => $country_term->tid,
+    );
+
+    // Change the country we have selected.
+    $this->drupalPostAJAX(NULL, $edit, 'test_rol_country[und]');
+
+    foreach (reference_option_limit_test_taxonomy_cities() as $city_name => $country_name) {
+      if ($country_name == 'Italy') {
+        $this->assertText($city_name, "The $city_name term was found in the form.");
+      }
+      else {
+        $this->assertNoText($city_name, "The $city_name term was not found in the form.");
+      }
+    }
+
+    // Save the node.
+    $terms = taxonomy_get_term_by_name('Firenze', 'cities');
+    $city_term = array_pop($terms);
+
+    $edit = array(
+      'title' => $this->randomName(),
+      // Use the most recent country term.
+      'test_rol_country[und]' => $country_term->tid,
+      "test_rol_city[und][{$city_term->tid}]" => 1,
+    );
+
+    $this->drupalPost(NULL, $edit, t('Save'));
+
+    // The URL is of the form http://example.com/node/NID.
+    $url = $this->getUrl();
+    $pieces = explode('/', $url);
+    $nid = array_pop($pieces);
+
+    $node = node_load($nid);
+
+    $this->assertEqual($node->test_rol_country[LANGUAGE_NONE][0]['tid'], $country_term->tid, "The node has its country field value set.");
+    $this->assertEqual($node->test_rol_city[LANGUAGE_NONE][0]['tid'], $city_term->tid, "The node has its city field value set.");
+  }
+
+  // TODO: node edit form.
+
+}

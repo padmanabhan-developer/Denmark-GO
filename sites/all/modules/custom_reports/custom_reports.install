@@ -1,0 +1,98 @@
+<?php
+function custom_reports_schema(){
+  $schema['data_tur'] = array(
+    'description' => t('The base table for info about turs.'),
+    'fields' => array(
+      // 'nid' => array(
+      //   'description' => 'The primary identifier for a node.',
+      //   'type' => 'serial',
+      //   'unsigned' => TRUE,
+      //   'not null' => TRUE
+      // ),
+      'turid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0
+      ),
+      'location' => array(
+        'description' => 'The location of this tur.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'community' => array(
+        'description' => 'The community of this tur.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'startdate' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'starttime' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'enddate' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'endtime' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'authorname' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'authoremail' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'authorrole' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'pilotname' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'default' => ''
+      ),
+      'pilotemail' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'default' => ''
+      ),
+      'passengers' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'default' => ''
+      ),
+
+    ),
+    'indexes' => array(),
+    'unique keys' => array(),
+    'primary key' => array('turid'),
+  );
+
+return $schema;
+}
+?>
